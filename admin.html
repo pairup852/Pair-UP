@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>管理者審批後台</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background-color: #f9f9f9; }
+        .user-card { background: white; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .btn-approve { background-color: #28a745; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; }
+        .btn-reject { background-color: #dc3545; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; margin-left: 5px; }
+        #login-box { margin-top: 100px; text-align: center; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        #admin-password { padding: 10px; font-size: 16px; width: 250px; border: 1px solid #ccc; border-radius: 4px; margin-right: 10px; }
+        .login-btn { padding: 10px 20px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- 簡易登入區塊 -->
+    <div id="login-box">
+        <h2>管理者登入</h2>
+        <input type="password" id="admin-password" placeholder="請輸入管理者密碼">
+        <button class="login-btn" onclick="checkLogin()">登入</button>
+    </div>
+
+    <!-- 審批列表區塊（預設隱藏） -->
+    <div id="admin-panel" style="display: none;">
+        <h2>待審批的申請者列表</h2>
+        <div id="user-list">
+            <!-- 動態載入申請者列表 -->
+        </div>
+    </div>
+
+    <script>
+        // 簡易前端密碼保護（請把 'my_secure_password' 改成你自己的密碼）
+        function checkLogin() {
+            const pwd = document.getElementById('admin-password').value;
+            if (pwd === 'my_secure_password') {
+                document.getElementById('login-box').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                loadPendingUsers();
+            } else {
+                alert('密碼錯誤！');
+            }
+        }
+
+        // 載入待審核用戶
+        async function loadPendingUsers() {
+            // 這裡未來可以換成你從資料庫抓取資料的 API
+            // 目前先用模擬資料展示畫面
+            const users = [
+                { id: 1, name: '王小明', email: 'test1@example.com' },
+                { id: 2, name: '李小華', email: 'test2@example.com' }
+            ];
+
+            const listContainer = document.getElementById('user-list');
+            listContainer.innerHTML = '';
+
+            if (users.length === 0) {
+                listContainer.innerHTML = '<div>目前沒有待審批的用戶。</div>';
+                return;
+            }
+
+            users.forEach(user => {
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.innerHTML = `
+                    <div>
+                        <strong>${user.name}</strong> <br>
+                        <small style="color: #666;">${user.email}</small>
+                    </div>
+                    <div>
+                        <button class="btn-approve" onclick="updateStatus(${user.id}, 'approved')">通過</button>
+                        <button class="btn-reject" onclick="updateStatus(${user.id}, 'rejected')">拒絕</button>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        // 審批動作
+        async function updateStatus(userId, status) {
+            // 這裡未來可以串接你的後端 API 來更新資料庫狀態
+            alert(`用戶 ID ${userId} 已被設為：${status === 'approved' ? '通過' : '拒絕'}`);
+            loadPendingUsers(); // 重新整理列表
+        }
+    </script>
+</body>
+</html>
