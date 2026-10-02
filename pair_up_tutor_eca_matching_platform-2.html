@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    < src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pair UP - 導師與課外活動配對平台 | Tutor & ECA Matching Platform</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom animations & scrollbar aesthetics */
+        .badge-pulse {
+            animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 gap-4">
+                
+                <!-- Logo & Brand -->
+                <div class="flex items-center gap-3 cursor-pointer" onclick="setActiveCategory('academic')">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-teal-400 flex items-center justify-center text-white font-black text-xl shadow-md">
+                        P
+                    </div>
+                    <div>
+                        <span class="text-xl font-bold tracking-tight text-slate-900">Pair <span class="text-brand-600">UP</span></span>
+                        <span class="hidden sm:inline-block text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-medium ml-2 border border-brand-200">
+                            HK Tutor & ECA
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons & Lang Toggle -->
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- Bilingual Toggle -->
+                    <button onclick="toggleLanguage()" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-xs sm:text-sm font-semibold transition flex items-center gap-1.5">
+                        <i class="fa-solid font-bold fa-language text-brand-600"></i>
+                        <span id="langBtnText">繁體中文</span>
+                    </button>
+
+                    <!-- CS Verification Toggle Demo Badge -->
+                    <button onclick="openCSModal()" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-medium transition">
+                        <i class="fa-solid fa-shield-halved text-amber-500"></i>
+                        <span data-i18n="csAdminPortal">CS Verification Queue</span>
+                        <span id="pendingBadgeCount" class="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">2</span>
+                    </button>
+
+                    <!-- Main Action Callouts -->
+                    <button onclick="openTutorModal()" class="px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                        <i class="fa-solid fa-chalkboard-user mr-1 text-brand-600"></i>
+                        <span data-i18n="becomeTutorBtn">Become a Tutor</span>
+                    </button>
+                    <button onclick="openRequestModal()" class="px-3.5 py-2 text-xs sm:text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm hover:shadow transition">
+                        <i class="fa-solid fa-pen-to-square mr-1"></i>
+                        <span data-i18n="postRequestBtn">Post Request</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3 Main Category Headbars -->
+            <div class="flex space-x-1 sm:space-x-4 border-t border-slate-100 pt-1 overflow-x-auto no-scrollbar">
+                <button id="catTab-academic" onclick="setActiveCategory('academic')" class="px-4 py-3 border-b-2 text-sm font-bold flex items-center gap-2 transition whitespace-nowrap border-brand-600 text-brand-600">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span data-i18n="tabAcademic">Academic Tutors</span>
+                </button>
+                <button id="catTab-eca" onclick="setActiveCategory('eca')" class="px-4 py-3 border-b-2 text-sm font-bold flex items-center gap-2 transition whitespace-nowrap border-transparent text-slate-500 hover:text-slate-800">
+                    <i class="fa-solid fa-icons"></i>
+                    <span data-i18n="tabEca">ECA / Arts / Sports</span>
+                </button>
+                <button id="catTab-language" onclick="setActiveCategory('language')" class="px-4 py-3 border-b-2 text-sm font-bold flex items-center gap-2 transition whitespace-nowrap border-transparent text-slate-500 hover:text-slate-800">
+                    <i class="fa-solid fa-globe"></i>
+                    <span data-i18n="tabLanguage">Language Tutors</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Category Banner & Info Header -->
+        <div class="mb-6 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-md relative overflow-hidden">
+            <div class="relative z-10 max-w-2xl">
+                <span id="categoryBadge" class="bg-brand-500/30 text-brand-300 text-xs font-semibold px-3 py-1 rounded-full border border-brand-500/40 uppercase tracking-wider">
+                    Academic Section
+                </span>
+                <h1 id="categoryTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight mt-2">
+                    Academic Tutoring (HKDSE, IB, A-Levels)
+                </h1>
+                <p id="categoryDesc" class="text-slate-300 text-xs sm:text-sm mt-1">
+                    Connect verified HKDSE, IB & A-Level top scorers with primary & secondary students.
+                </p>
+            </div>
+            <i id="categoryBgIcon" class="fa-solid fa-graduation-cap absolute -right-6 -bottom-6 text-9xl text-white/5 pointer-events-none"></i>
+        </div>
+
+        <!-- Section Navigation Tabs & Filter Bar -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                
+                <!-- 2 Sub-Sections Toggle: Student Requests VS Tutor Profiles -->
+                <div class="flex bg-slate-100 p-1 rounded-lg self-start md:self-auto">
+                    <button id="sectionTab-requests" onclick="setActiveSection('requests')" class="px-4 py-2 rounded-md text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-slate-900 shadow-sm">
+                        <i class="fa-solid fa-clipboard-list text-brand-600"></i>
+                        <span data-i18n="subRequests">Student Requests</span>
+                        <span id="requestsCount" class="bg-brand-100 text-brand-800 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                    </button>
+                    <button id="sectionTab-tutors" onclick="setActiveSection('tutors')" class="px-4 py-2 rounded-md text-xs sm:text-sm font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-user-check text-slate-500"></i>
+                        <span data-i18n="subTutors">Tutor Profiles</span>
+                        <span id="tutorsCount" class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                    </button>
+                </div>
+
+                <!-- Multi-Filter Control Bar -->
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 flex-1 md:justify-end">
+                    <!-- Subject/Instrument Filter -->
+                    <div class="w-full sm:w-auto min-w-[180px]">
+                        <select id="filterSubject" onchange="applyFilters()" class="w-full text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="" data-i18n="filterAllSubjects">All Subjects / Skills</option>
+                        </select>
+                    </div>
+
+                    <!-- District Filter -->
+                    <div class="w-full sm:w-auto min-w-[160px]">
+                        <select id="filterDistrict" onchange="applyFilters()" class="w-full text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="" data-i18n="filterAllDistricts">All 18 Districts</option>
+                        </select>
+                    </div>
+
+                    <!-- Role Filter (Only applicable for Tutor Profiles view) -->
+                    <div id="filterRoleWrapper" class="w-full sm:w-auto min-w-[150px] hidden">
+                        <select id="filterRole" onchange="applyFilters()" class="w-full text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="" data-i18n="filterAllRoles">All Roles</option>
+                            <option value="Undergraduate" data-i18n="roleUndergrad">Undergraduate</option>
+                            <option value="Master" data-i18n="roleMaster">Master</option>
+                            <option value="PhD" data-i18n="rolePhD">PhD</option>
+                            <option value="Licensed Teacher" data-i18n="roleTeacher">Licensed Teacher</option>
+                            <option value="Not Applicable" data-i18n="roleNA">Not Applicable</option>
+                        </select>
+                    </div>
+
+                    <!-- Reset Filters -->
+                    <button onclick="resetFilters()" class="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> <span data-i18n="reset">Reset</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Content Display Grid -->
+        <div id="contentGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Dynamic Items Rendered Here -->
+        </div>
+
+        <!-- Empty State View -->
+        <div id="emptyState" class="hidden text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300 p-8">
+            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 text-2xl mb-4">
+                <i class="fa-solid fa-folder-open"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800" data-i18n="emptyTitle">No listings match your criteria</h3>
+            <p class="text-slate-500 text-sm mt-1" data-i18n="emptyDesc">Try clearing filters or post a new request/tutor profile.</p>
+            <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-brand-600 text-white font-medium text-xs rounded-lg hover:bg-brand-700 transition">
+                <span data-i18n="clearFilters">Clear Filters</span>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- MODAL 1: Post Student / Parent Request -->
+    <div id="requestModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900" data-i18n="reqModalTitle">Post Student / Parent Request</h3>
+                    <p class="text-xs text-slate-500" data-i18n="reqModalSubtitle">No name required. All listings are anonymously verified by Pair UP CS.</p>
+                </div>
+                <button onclick="closeRequestModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Body -->
+            <form id="requestForm" onsubmit="handleRequestSubmit(event)" class="p-6 overflow-y-auto flex-1 space-y-4">
+                
+                <!-- 1. Category Selector -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">1. <span data-i18n="formCategory">Tutoring Category</span></label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="border border-slate-200 p-3 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-brand-500 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50/50 transition text-center">
+                            <input type="radio" name="reqCategory" value="academic" checked onchange="updateReqSubjectOptions()" class="hidden">
+                            <i class="fa-solid fa-graduation-cap text-lg text-brand-600 mb-1"></i>
+                            <span class="text-xs font-bold text-slate-800" data-i18n="tabAcademic">Academic</span>
+                        </label>
+                        <label class="border border-slate-200 p-3 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-brand-500 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50/50 transition text-center">
+                            <input type="radio" name="reqCategory" value="eca" onchange="updateReqSubjectOptions()" class="hidden">
+                            <i class="fa-solid fa-music text-lg text-brand-600 mb-1"></i>
+                            <span class="text-xs font-bold text-slate-800" data-i18n="tabEca">ECA / Music / Sports</span>
+                        </label>
+                        <label class="border border-slate-200 p-3 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-brand-500 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50/50 transition text-center">
+                            <input type="radio" name="reqCategory" value="language" onchange="updateReqSubjectOptions()" class="hidden">
+                            <i class="fa-solid fa-language text-lg text-brand-600 mb-1"></i>
+                            <span class="text-xs font-bold text-slate-800" data-i18n="tabLanguage">Language</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 2. Structured Subject / Instrument / Language Selection -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">2. <span data-i18n="formSubject">Subject / Instrument Needed</span></label>
+                    <select id="reqSubjectSelect" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <!-- Options filled dynamically based on category -->
+                    </select>
+                </div>
+
+                <!-- 3. Grade / Student Level & Target Budget -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="formLevel">Student Level</span></label>
+                        <select id="reqLevel" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="Primary 1-3" data-i18n="lvlP13">Primary 1 - 3</option>
+                            <option value="Primary 4-6" data-i18n="lvlP46">Primary 4 - 6</option>
+                            <option value="Secondary 1-3 (Junior)" data-i18n="lvlS13">Secondary 1 - 3 (Junior Form)</option>
+                            <option value="Secondary 4-6 (DSE/IB/A-Level)" data-i18n="lvlS46">Secondary 4 - 6 (Senior Form)</option>
+                            <option value="Adult / Amateur" data-i18n="lvlAdult">Adult / Amateur Learner</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="formBudget">Hourly Rate Offered (HKD/hr)</span></label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-slate-400 font-bold text-xs">$</span>
+                            <input type="number" id="reqBudget" min="100" max="2000" step="10" placeholder="e.g. 350" required class="w-full text-sm border border-slate-300 rounded-lg pl-7 pr-3 py-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Preferred District Selection -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="formDistrict">Preferred Hong Kong District</span></label>
+                    <select id="reqDistrict" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <!-- Populated with HK 18 Districts -->
+                    </select>
+                </div>
+
+                <!-- 5. Additional Lesson Notes -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="formNotes">Lesson Frequency & Requirements</span></label>
+                    <textarea id="reqNotes" rows="2" placeholder="e.g. 1.5 hrs per lesson, once a week. Prefer native speaker or experienced DSE tutor." class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <!-- 6. Confidential Contact Field -->
+                <div class="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                    <div class="flex items-start gap-2 mb-2">
+                        <i class="fa-solid fa-lock text-amber-600 mt-0.5"></i>
+                        <div>
+                            <span class="text-xs font-bold text-amber-900 uppercase tracking-wider" data-i18n="confidentialHeader">Pair UP Confidential Contact</span>
+                            <p class="text-[11px] text-amber-800" data-i18n="confidentialDesc">Your contact will NEVER be shown publicly. Pair UP CS contacts you for verification & matching.</p>
+                        </div>
+                    </div>
+                    <input type="tel" id="reqPhone" placeholder="WhatsApp / Phone Number (e.g. 9123 4567)" required class="w-full text-sm border border-amber-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-brand-600 text-white font-bold py-3 px-4 rounded-xl shadow-md hover:bg-brand-700 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span data-i18n="submitRequestBtn">Submit Request (Pending CS Review)</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Become a Tutor Form -->
+    <div id="tutorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900" data-i18n="tutorModalTitle">Register as Pair UP Tutor</h3>
+                    <p class="text-xs text-slate-500" data-i18n="tutorModalSubtitle">Fill in your qualification, role, available 18 HK districts & exam achievements.</p>
+                </div>
+                <button onclick="closeTutorModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Body -->
+            <form id="tutorForm" onsubmit="handleTutorSubmit(event)" class="p-6 overflow-y-auto flex-1 space-y-5">
+                
+                <!-- Tutor Name & Profile Title -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="tutorName">Full Name / Display Name</span></label>
+                        <input type="text" id="tutorNameInput" required placeholder="e.g. Alex Wong" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    
+                    <!-- Role Selection (As requested) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="tutorRole">Teacher Role / Qualification Status</span></label>
+                        <select id="tutorRoleSelect" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500 font-semibold text-slate-800">
+                            <option value="Undergraduate" data-i18n="roleUndergrad">Undergraduate (大學生)</option>
+                            <option value="Master" data-i18n="roleMaster">Master (碩士)</option>
+                            <option value="PhD" data-i18n="rolePhD">PhD (博士)</option>
+                            <option value="Licensed Teacher" data-i18n="roleTeacher">Licensed Teacher (持牌/註冊教師)</option>
+                            <option value="Not Applicable" data-i18n="roleNA">Not Applicable (不適用)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Main Teaching Category -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="primaryCategory">Primary Teaching Category</span></label>
+                    <select id="tutorCategorySelect" onchange="toggleTutorQualFields()" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500 font-semibold">
+                        <option value="academic" data-i18n="tabAcademic">Academic Tutoring (學術)</option>
+                        <option value="eca" data-i18n="tabEca">ECA / Arts / Music / Sports (課外活動)</option>
+                        <option value="language" data-i18n="tabLanguage">Language Tutoring (語言)</option>
+                    </select>
+                </div>
+
+                <!-- Education Background & Hourly Rate -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="university">University / High School</span></label>
+                        <input type="text" id="tutorUni" placeholder="e.g. HKU / CUHK / Imperial College" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="expectedFee">Expected Hourly Rate (HKD/hr)</span></label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-slate-400 font-bold text-xs">$</span>
+                            <input type="number" id="tutorRate" min="100" max="3000" step="10" placeholder="e.g. 300" required class="w-full text-sm border border-slate-300 rounded-lg pl-7 pr-3 py-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 18 HK Districts Selection (Multi-select Checkboxes) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="districtsTitle">Available HK Districts (Select One or More)</span></label>
+                    <div id="districtCheckboxes" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-36 overflow-y-auto p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+
+                <!-- DYNAMIC QUALIFICATION SECTION (Based on Category selected) -->
+                
+                <!-- A) ACADEMIC: Public Exam Scores (HKDSE / IB / A-Level) -->
+                <div id="qualAcademicGroup" class="p-4 bg-slate-100 rounded-xl border border-slate-200 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-800 uppercase tracking-wider"><i class="fa-solid fa-award text-brand-600 mr-1"></i> Public Exam Results (HKDSE / IB / A-Level)</span>
+                        <select id="examCurriculumSelect" onchange="renderExamSubjectCheckboxes()" class="text-xs border border-slate-300 rounded px-2 py-1 font-semibold">
+                            <option value="HKDSE">Hong Kong HKDSE</option>
+                            <option value="IB">IB Diploma</option>
+                            <option value="A-Levels">UK GCE A-Levels</option>
+                        </select>
+                    </div>
+
+                    <p class="text-[11px] text-slate-500">Select subjects you obtained top results (e.g. 5** / 5* / Grade 7 / A*):</p>
+                    
+                    <div id="examSubjectCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded-lg border border-slate-200">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- B) ECA / MUSIC / SPORTS: Certifications & Licenses -->
+                <div id="qualEcaGroup" class="hidden p-4 bg-slate-100 rounded-xl border border-slate-200 space-y-3">
+                    <span class="text-xs font-bold text-slate-800 uppercase tracking-wider"><i class="fa-solid fa-certificate text-brand-600 mr-1"></i> ECA / Music / Sports Certifications & Licenses</span>
+                    <p class="text-[11px] text-slate-500">Check official certificates you possess:</p>
+                    <div id="ecaCertCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded-lg border border-slate-200">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- C) LANGUAGE: Official Language Standardized Tests -->
+                <div id="qualLangGroup" class="hidden p-4 bg-slate-100 rounded-xl border border-slate-200 space-y-3">
+                    <span class="text-xs font-bold text-slate-800 uppercase tracking-wider"><i class="fa-solid fa-language text-brand-600 mr-1"></i> Language Qualifications & Proficiency Tests</span>
+                    <p class="text-[11px] text-slate-500">Select test certifications you hold:</p>
+                    <div id="langTestCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-white rounded-lg border border-slate-200">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Bio & Self Deion -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="tutorBio">Teaching Style & Highlights</span></label>
+                    <textarea id="tutorBioInput" rows="2" placeholder="e.g. 4 years tutoring experience. Provided notes for HKDSE students, 80% scored Level 5+." class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500"></textarea>
+                </div>
+
+                <!-- Confidential Phone Field -->
+                <div class="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                    <div class="flex items-start gap-2 mb-2">
+                        <i class="fa-solid fa-shield-halved text-amber-600 mt-0.5"></i>
+                        <div>
+                            <span class="text-xs font-bold text-amber-900 uppercase tracking-wider" data-i18n="confidentialHeader">Pair UP Confidential Contact</span>
+                            <p class="text-[11px] text-amber-800" data-i18n="confidentialDesc">Your contact will NEVER be shown publicly. CS contacts you for verification & matching.</p>
+                        </div>
+                    </div>
+                    <input type="tel" id="tutorPhone" placeholder="WhatsApp / Phone Number (e.g. 9876 5432)" required class="w-full text-sm border border-amber-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+
+                <!-- Submit Button -->
+                <div>
+                    <button type="submit" class="w-full bg-brand-600 text-white font-bold py-3 px-4 rounded-xl shadow-md hover:bg-brand-700 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-id-card"></i>
+                        <span data-i18n="submitTutorBtn">Submit Profile for CS Verification</span>
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: CS Verification & Commission Process Modal -->
+    <div id="csModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-headset text-amber-400 text-xl"></i>
+                    <div>
+                        <h3 class="text-base font-bold">Pair UP Customer Service Verification Queue</h3>
+                        <p class="text-xs text-slate-300">Matching & Commission Safety Control System</p>
+                    </div>
+                </div>
+                <button onclick="closeCSModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-4 text-sm text-slate-700">
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                    <h4 class="font-bold text-amber-900 text-xs uppercase tracking-wider">How Verification Works:</h4>
+                    <p class="text-xs text-amber-800 mt-1">
+                        1. All newly posted requests and profiles enter <b>Pending Verification</b> state.<br>
+                        2. Pair UP CS team checks tutor certificates & student requests.<br>
+                        3. Phone numbers remain confidential. CS handles double-blind matching.
+                    </p>
+                </div>
+
+                <div class="border-t border-slate-200 pt-4">
+                    <h4 class="font-bold text-slate-900 mb-2">Pending Items in Queue:</h4>
+                    <div id="csQueueContainer" class="space-y-3">
+                        <!-- Pending items rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="closeCSModal()" class="px-4 py-2 bg-slate-800 text-white text-xs font-bold rounded-lg hover:bg-slate-900">
+                    Close CS Panel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match Request Alert Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl z-50 flex items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+        <i class="fa-solid fa-circle-check text-brand-400 text-lg"></i>
+        <span id="toastMsg" class="text-xs font-medium">Action completed successfully.</span>
+    </div>
+
+    <>
+        /* ==========================================================================
+           1. DATA STRUCTURES & CONFIGURATION
+           ========================================================================== */
+
+        // 18 Hong Kong Districts (As required)
+        const HK_DISTRICTS = [
+            "Central and Western", "Eastern", "Islands", "Kowloon City", "Kwai Tsing", 
+            "Kwun Tong", "North", "Sai Kung", "Sham Shui Po", "Sha Tin", 
+            "Southern", "Tai Po", "Tsuen Wan", "Tuen Mun", "Wan Chai", 
+            "Wong Tai Sin", "Yau Tsim Mong", "Yuen Long"
+        ];
+
+        // DSE Subjects List (As strictly required in prompt)
+        const HKDSE_SUBJECTS = [
+            "Chinese Language", "English Language", "Mathematics", "Citizenship and Social Development",
+            "Biology", "Chemistry", "Physics", "Business, Accounting and Financial Studies (BAFS)",
+            "Information and Communication Technology (ICT)", "Design and Applied Technology",
+            "Economics", "Geography", "History", "Chinese History", "Literature in English",
+            "Chinese Literature", "Ethics and Religious Studies", "Tourism and Hospitality Studies",
+            "Technology and Living", "Visual Arts", "Music", "Physical Education",
+            "French", "German", "Spanish", "Japanese", "Korean", "Urdu", "Hindi"
+        ];
+
+        // IB Subjects List
+        const IB_SUBJECTS = [
+            "Studies in Language and Literature", "Language Acquisition", "Business Management", "Economics",
+            "Geography", "Global Politics", "History", "Philosophy", "Psychology", "Social and Cultural Anthropology",
+            "World Religions", "Digital Society", "Biology", "Chemistry", "Physics", "Computer Science",
+            "Design Technology", "Environmental Systems and Societies", "Sports, Exercise and Health Science",
+            "Mathematics: Analysis and Approaches", "Mathematics: Applications and Interpretation",
+            "Dance", "Film", "Music", "Theatre", "Visual Arts"
+        ];
+
+        // GCE A-Levels Subjects List
+        const ALEVEL_SUBJECTS = [
+            "Mathematics", "Further Mathematics", "Biology", "Chemistry", "Physics", "Computer Science",
+            "Design and Technology", "Economics", "Business", "Accounting", "Geography", "History",
+            "Politics", "Psychology", "Sociology", "Law", "English Literature", "English Language",
+            "Philosophy", "Religious Studies", "Classical Civilisation", "French", "Spanish", "German",
+            "Mandarin", "Italian", "Russian", "Fine Art", "Graphic Communication", "Photography",
+            "Textile Design", "3D Design", "Drama and Theatre", "Music", "Music Technology", "Media Studies", "Physical Education"
+        ];
+
+        // ECA / Music / Sports Certifications List
+        const ECA_CERTS = [
+            "ABRSM Piano Grade 8 / Diploma", "ABRSM Violin / Cello Grade 8", "ABRSM Music Theory Grade 5/8",
+            "Trinity Guildhall Music Certificate", "RAD Ballet Certificate", "NSCA Certified Personal Trainer",
+            "Yoga Alliance RYT-200", "Hong Kong Football Association (HKFA) Coach License",
+            "Hong Kong Amateur Swimming Association (HKASA) Swim Coach", "Hong Kong Tennis Association Coach",
+            "CANSail Sailing Instructor", "Hong Kong Chess Federation Certified Coach"
+        ];
+
+        // Language Standardized Exam Lists
+        const LANG_EXAMS = [
+            "IELTS (Band 7.5 - 9.0)", "TOEFL iBT (100+)", "Cambridge English C1 Advanced / C2 Proficiency",
+            "PTE Academic", "HSK Level 5 / 6 (Mandarin)", "JLPT N1 / N2 (Japanese)",
+            "TOPIK Level 5 / 6 (Korean)", "DELF / DALF (French)", "DELE (Spanish)", "Goethe-Zertifikat (German)"
+        ];
+
+        // Language Teaching Subjects
+        const LANG_SUBJECTS = [
+            "English Language / Conversation", "IELTS Preparation", "TOEFL / SAT Prep", "Mandarin (普通話)",
+            "Cantonese (廣東話)", "Japanese (日本語)", "Korean (韓語)", "French (Français)",
+            "Spanish (Español)", "German (Deutsch)"
+        ];
+
+        // ECA Teaching Subjects
+        const ECA_SUBJECTS = [
+            "Piano (鋼琴)", "Violin / String Instruments (小提琴)", "Vocal / Singing (聲樂)", "Visual Arts / Sketching (視覺藝術)",
+            "Ballet / Dance (芭蕾舞)", "Basketball / Volleyball (籃球/排球)", "Swimming (游泳)", "Tennis (網球)",
+            "Chess / Go (圍棋/國際象棋)", "Fitness & Gym (健身)"
+        ];
+
+        /* ==========================================================================
+           2. INITIAL MOCK DATA
+           ========================================================================== */
+
+        let mockListings = [
+            // Requests
+            {
+                id: 'req-1',
+                type: 'request',
+                category: 'academic',
+                subject: 'Mathematics',
+                level: 'Secondary 4-6 (DSE/IB/A-Level)',
+                district: 'Sha Tin',
+                budget: 380,
+                notes: 'Need HKDSE M1/M2 tutor for S5 student. Prefer 5** in Math.',
+                phone: '9123 4567',
+                verified: true,
+                createdAt: '2026-10-01'
+            },
+            {
+                id: 'req-2',
+                type: 'request',
+                category: 'eca',
+                subject: 'Piano (鋼琴)',
+                level: 'Primary 4-6',
+                district: 'Wan Chai',
+                budget: 450,
+                notes: 'Preparing for ABRSM Grade 6 Piano Exam.',
+                phone: '9888 1234',
+                verified: true,
+                createdAt: '2026-10-02'
+            },
+            {
+                id: 'req-3',
+                type: 'request',
+                category: 'language',
+                subject: 'IELTS Preparation',
+                level: 'Adult / Amateur',
+                district: 'Central and Western',
+                budget: 500,
+                notes: 'Targeting Overall Band 7.5 for university master entry.',
+                phone: '9333 4444',
+                verified: true,
+                createdAt: '2026-10-02'
+            },
+            {
+                id: 'req-4',
+                type: 'request',
+                category: 'academic',
+                subject: 'Physics',
+                level: 'Secondary 4-6 (DSE/IB/A-Level)',
+                district: 'Kowloon City',
+                budget: 350,
+                notes: 'Pending CS verification sample post.',
+                phone: '9000 1111',
+                verified: false, // Pending verification
+                createdAt: '2026-10-02'
+            },
+
+            // Tutors
+            {
+                id: 'tut-1',
+                type: 'tutor',
+                name: 'Julian Chen',
+                role: 'Undergraduate',
+                category: 'academic',
+                uni: 'HKU - Medicine (MBBS)',
+                rate: 400,
+                districts: ['Central and Western', 'Wan Chai', 'Eastern', 'Kowloon City'],
+                quals: ['HKDSE Math: 5**', 'HKDSE Chemistry: 5**', 'HKDSE Biology: 5**'],
+                bio: 'Scored 7 5** in HKDSE. 3 years tutoring secondary school students.',
+                phone: '6111 2222',
+                verified: true,
+                avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+                createdAt: '2026-09-28'
+            },
+            {
+                id: 'tut-2',
+                type: 'tutor',
+                name: 'Sarah Wong',
+                role: 'Licensed Teacher',
+                category: 'eca',
+                uni: 'HKAPA Piano Performance Master',
+                rate: 600,
+                districts: ['Sha Tin', 'Tai Po', 'Kowloon City'],
+                quals: ['ABRSM Piano Grade 8 / Diploma', 'Trinity Guildhall Music Certificate'],
+                bio: 'Full-time piano teacher with 8 years experience. Prepared over 40 students for distinction in ABRSM exams.',
+                phone: '6222 3333',
+                verified: true,
+                avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+                createdAt: '2026-09-29'
+            },
+            {
+                id: 'tut-3',
+                type: 'tutor',
+                name: 'Kenji Sato',
+                role: 'Master',
+                category: 'language',
+                uni: 'Waseda University / CUHK',
+                rate: 450,
+                districts: ['Central and Western', 'Yau Tsim Mong', 'Wan Chai'],
+                quals: ['JLPT N1 / N2 (Japanese)', 'Native Japanese Speaker'],
+                bio: 'Native Japanese speaker. Specialized in JLPT N3-N1 prep and business Japanese.',
+                phone: '6333 4444',
+                verified: true,
+                avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+                createdAt: '2026-09-30'
+            },
+            {
+                id: 'tut-4',
+                type: 'tutor',
+                name: 'Dr. Michael Lau',
+                role: 'PhD',
+                category: 'academic',
+                uni: 'PhD in Physics, UST',
+                rate: 550,
+                districts: ['Sai Kung', 'Kwun Tong'],
+                quals: ['HKDSE Physics: 5**', 'IB Physics HL: Grade 7'],
+                bio: 'Ex-university TA. Tailored notes for IB & DSE Physics students.',
+                phone: '6444 5555',
+                verified: false, // Pending verification
+                avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+                createdAt: '2026-10-02'
+            }
+        ];
+
+        /* ==========================================================================
+           3. APP STATE & LOCALIZATION
+           ========================================================================== */
+
+        let currentLang = 'en'; // 'en' or 'zh'
+        let currentCategory = 'academic'; // 'academic', 'eca', 'language'
+        let currentSection = 'requests'; // 'requests' or 'tutors'
+
+        const i18n = {
+            en: {
+                csAdminPortal: "CS Verification Queue",
+                becomeTutorBtn: "Become a Tutor",
+                postRequestBtn: "Post Request",
+                tabAcademic: "Academic Tutors",
+                tabEca: "ECA / Arts / Sports",
+                tabLanguage: "Language Tutors",
+                subRequests: "Student Requests",
+                subTutors: "Tutor Profiles",
+                filterAllSubjects: "All Subjects / Skills",
+                filterAllDistricts: "All 18 Districts",
+                filterAllRoles: "All Roles",
+                roleUndergrad: "Undergraduate",
+                roleMaster: "Master",
+                rolePhD: "PhD",
+                roleTeacher: "Licensed Teacher",
+                roleNA: "Not Applicable",
+                reset: "Reset",
+                emptyTitle: "No listings match your criteria",
+                emptyDesc: "Try clearing filters or post a new request/tutor profile.",
+                clearFilters: "Clear Filters",
+                reqModalTitle: "Post Student / Parent Request",
+                reqModalSubtitle: "No name required. All listings are anonymously verified by Pair UP CS.",
+                formCategory: "Tutoring Category",
+                formSubject: "Subject / Instrument Needed",
+                formLevel: "Student Level",
+                formBudget: "Hourly Rate Offered (HKD/hr)",
+                formDistrict: "Preferred Hong Kong District",
+                formNotes: "Lesson Frequency & Requirements",
+                confidentialHeader: "Pair UP Confidential Contact",
+                confidentialDesc: "Your contact will NEVER be shown publicly. Pair UP CS contacts you for verification & matching.",
+                submitRequestBtn: "Submit Request (Pending CS Review)",
+                tutorModalTitle: "Register as Pair UP Tutor",
+                tutorModalSubtitle: "Fill in your qualification, role, available 18 HK districts & exam achievements.",
+                tutorName: "Full Name / Display Name",
+                tutorRole: "Teacher Role / Qualification Status",
+                primaryCategory: "Primary Teaching Category",
+                university: "University / High School",
+                expectedFee: "Expected Hourly Rate (HKD/hr)",
+                districtsTitle: "Available HK Districts (Select One or More)",
+                tutorBio: "Teaching Style & Highlights",
+                submitTutorBtn: "Submit Profile for CS Verification",
+                applyMatch: "Request Match via CS",
+                pendingVerification: "Pending CS Verification"
+            },
+            zh: {
+                csAdminPortal: "CS 審核隊列",
+                becomeTutorBtn: "登記成為導師",
+                postRequestBtn: "發佈家長/學生需求",
+                tabAcademic: "學術導師",
+                tabEca: "課外活動導師",
+                tabLanguage: "語言導師",
+                subRequests: "學生/家長尋導師",
+                subTutors: "導師檔案",
+                filterAllSubjects: "所有科目 / 技能",
+                filterAllDistricts: "全港18區",
+                filterAllRoles: "所有身份",
+                roleUndergrad: "大學生",
+                roleMaster: "碩士",
+                rolePhD: "博士",
+                roleTeacher: "持牌/註冊教師",
+                roleNA: "不適用",
+                reset: "重置",
+                emptyTitle: "未有符合條件的項目",
+                emptyDesc: "嘗試清除篩選條件，或發佈新的需求/導師檔案。",
+                clearFilters: "清除篩選",
+                reqModalTitle: "發佈學生/家長需求",
+                reqModalSubtitle: "無需填寫姓名。所有需求均由 Pair UP 客服匿名審核後配對。",
+                formCategory: "補習類別",
+                formSubject: "所需科目 / 樂器 / 語言",
+                formLevel: "學生年級",
+                formBudget: "學費預算 (港幣/小時)",
+                formDistrict: "理想上課地區",
+                formNotes: "上課頻率與要求",
+                confidentialHeader: "Pair UP 機密聯絡資料",
+                confidentialDesc: "您的電話絕不會公開。Pair UP 客服會直接聯絡您進行核實與導師配對。",
+                submitRequestBtn: "提交需求 (待 CS 審核)",
+                tutorModalTitle: "登記成為 Pair UP 導師",
+                tutorModalSubtitle: "填寫您的教師身份、地區選擇 (可多選) 及公開考試/專業證書。",
+                tutorName: "導師姓名 / 稱呼",
+                tutorRole: "教師身份 / 學歷類別",
+                primaryCategory: "主要教學範疇",
+                university: "就讀/畢業大學或中學",
+                expectedFee: "期望時薪 (港幣/小時)",
+                districtsTitle: "可接教地區 (可選擇一個或多個)",
+                tutorBio: "個人優勢與教學特色",
+                submitTutorBtn: "提交檔案待 CS 審核",
+                applyMatch: "透過 CS 申請配對",
+                pendingVerification: "待 CS 客服審核"
+            }
+        };
+
+        // On Window Load
+        window.onload = function() {
+            initDistrictCheckboxes();
+            updateReqSubjectOptions();
+            toggleTutorQualFields();
+            renderExamSubjectCheckboxes();
+            renderEcaCertCheckboxes();
+            renderLangTestCheckboxes();
+            
+            populateFilterOptions();
+            renderListings();
+            updateCSQueueCount();
+        };
+
+        // Language Switcher
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'zh' : 'en';
+            document.getElementById('langBtnText').innerText = currentLang === 'en' ? '繁體中文' : 'English';
+            
+            // Translate static elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[currentLang][key]) {
+                    el.innerText = i18n[currentLang][key];
+                }
+            });
+
+            // Re-render dynamic components
+            updateCategoryHeader();
+            populateFilterOptions();
+            renderListings();
+        }
+
+        // Category Switcher
+        function setActiveCategory(cat) {
+            currentCategory = cat;
+            
+            // Update Tab styles
+            ['academic', 'eca', 'language'].forEach(c => {
+                const tab = document.getElementById(`catTab-${c}`);
+                if (c === cat) {
+                    tab.className = "px-4 py-3 border-b-2 text-sm font-bold flex items-center gap-2 transition whitespace-nowrap border-brand-600 text-brand-600";
+                } else {
+                    tab.className = "px-4 py-3 border-b-2 text-sm font-bold flex items-center gap-2 transition whitespace-nowrap border-transparent text-slate-500 hover:text-slate-800";
+                }
+            });
+
+            updateCategoryHeader();
+            populateFilterOptions();
+            renderListings();
+        }
+
+        // Section Switcher (Requests vs Tutor Profiles)
+        function setActiveSection(sec) {
+            currentSection = sec;
+            const reqBtn = document.getElementById('sectionTab-requests');
+            const tutBtn = document.getElementById('sectionTab-tutors');
+            const roleFilterWrapper = document.getElementById('filterRoleWrapper');
+
+            if (sec === 'requests') {
+                reqBtn.className = "px-4 py-2 rounded-md text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-slate-900 shadow-sm";
+                tutBtn.className = "px-4 py-2 rounded-md text-xs sm:text-sm font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900";
+                roleFilterWrapper.classList.add('hidden');
+            } else {
+                tutBtn.className = "px-4 py-2 rounded-md text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-slate-900 shadow-sm";
+                reqBtn.className = "px-4 py-2 rounded-md text-xs sm:text-sm font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900";
+                roleFilterWrapper.classList.remove('hidden');
+            }
+
+            renderListings();
+        }
+
+        function updateCategoryHeader() {
+            const badge = document.getElementById('categoryBadge');
+            const title = document.getElementById('categoryTitle');
+            const desc = document.getElementById('categoryDesc');
+            const icon = document.getElementById('categoryBgIcon');
+
+            if (currentCategory === 'academic') {
+                badge.innerText = currentLang === 'en' ? "Academic Section" : "學術補習專區";
+                title.innerText = currentLang === 'en' ? "Academic Tutoring (HKDSE, IB, A-Levels)" : "學術補習 (HKDSE、IB、A-Levels)";
+                desc.innerText = currentLang === 'en' ? "Connect verified HKDSE, IB & A-Level top scorers with primary & secondary students." : "匯聚 HKDSE 狀元、IB 及 A-Levels 頂尖導師，精準配對中小學生。";
+                icon.className = "fa-solid fa-graduation-cap absolute -right-6 -bottom-6 text-9xl text-white/5 pointer-events-none";
+            } else if (currentCategory === 'eca') {
+                badge.innerText = currentLang === 'en' ? "ECA / Arts / Sports" : "課外活動 / 音樂體育";
+                title.innerText = currentLang === 'en' ? "Music, Arts, Dance & Sports Coaching" : "樂器音樂、視覺藝術、舞蹈與體育教練";
+                desc.innerText = currentLang === 'en' ? "Certified ABRSM, RAD, NSCA coaches and instructors for kids and adults." : "持有 ABRSM 皇家音樂證書、RAD 芭蕾舞及 NSCA 認可教練等專業資格。";
+                icon.className = "fa-solid fa-music absolute -right-6 -bottom-6 text-9xl text-white/5 pointer-events-none";
+            } else {
+                badge.innerText = currentLang === 'en' ? "Language Section" : "語言專區";
+                title.innerText = currentLang === 'en' ? "Language Proficiency & Exam Tutors" : "國際語言認證與口語導師";
+                desc.innerText = currentLang === 'en' ? "IELTS, TOEFL, JLPT, HSK, French & Spanish native and exam experts." : "涵蓋 IELTS、TOEFL、JLPT N1、HSK 及各國母語導師配對。";
+                icon.className = "fa-solid fa-language absolute -right-6 -bottom-6 text-9xl text-white/5 pointer-events-none";
+            }
+        }
+
+
+        function populateFilterOptions() {
+            const subjectSelect = document.getElementById('filterSubject');
+            const districtSelect = document.getElementById('filterDistrict');
+
+            subjectSelect.innerHTML = `<option value="">${i18n[currentLang].filterAllSubjects}</option>`;
+            districtSelect.innerHTML = `<option value="">${i18n[currentLang].filterAllDistricts}</option>`;
+
+            let subjects = [];
+            if (currentCategory === 'academic') subjects = HKDSE_SUBJECTS;
+            else if (currentCategory === 'eca') subjects = ECA_SUBJECTS;
+            else subjects = LANG_SUBJECTS;
+
+            subjects.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.innerText = sub;
+                subjectSelect.appendChild(opt);
+            });
+
+            HK_DISTRICTS.forEach(dist => {
+                const opt = document.createElement('option');
+                opt.value = dist;
+                opt.innerText = dist;
+                districtSelect.appendChild(opt);
+            });
+        }
+
+        function renderListings() {
+            const grid = document.getElementById('contentGrid');
+            const empty = document.getElementById('emptyState');
+            grid.innerHTML = '';
+
+            const subFilter = document.getElementById('filterSubject').value;
+            const distFilter = document.getElementById('filterDistrict').value;
+            const roleFilter = document.getElementById('filterRole').value;
+
+            // Filter logic
+            const filtered = mockListings.filter(item => {
+                // Category match
+                if (item.category !== currentCategory) return false;
+                // Section match (request vs tutor)
+                if (currentSection === 'requests' && item.type !== 'request') return false;
+                if (currentSection === 'tutors' && item.type !== 'tutor') return false;
+                
+                // Subject filter
+                if (subFilter && item.subject !== subFilter && !item.quals?.some(q => q.includes(subFilter))) return false;
+                
+                // District filter
+                if (distFilter) {
+                    if (item.type === 'request' && item.district !== distFilter) return false;
+                    if (item.type === 'tutor' && !item.districts?.includes(distFilter)) return false;
+                }
+
+                // Role filter
+                if (roleFilter && item.type === 'tutor' && item.role !== roleFilter) return false;
+
+                return true;
+            });
+
+            // Update Counts
+            const reqCount = mockListings.filter(i => i.category === currentCategory && i.type === 'request' && i.verified).length;
+            const tutCount = mockListings.filter(i => i.category === currentCategory && i.type === 'tutor' && i.verified).length;
+            document.getElementById('requestsCount').innerText = reqCount;
+            document.getElementById('tutorsCount').innerText = tutCount;
+
+            if (filtered.length === 0) {
+                grid.classList.add('hidden');
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            grid.classList.remove('hidden');
+            empty.classList.add('hidden');
+
+            filtered.forEach(item => {
+                if (item.type === 'request') {
+                    grid.appendChild(createRequestCard(item));
+                } else {
+                    grid.appendChild(createTutorCard(item));
+                }
+            });
+        }
+
+        // Card Template for Student Request
+        function createRequestCard(item) {
+            const card = document.createElement('div');
+            card.className = "bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between relative overflow-hidden";
+            
+            const isVerified = item.verified;
+
+            card.innerHTML = `
+                <div>
+                    <!-- Verification Badge Header -->
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${isVerified ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}">
+                            <i class="fa-solid ${isVerified ? 'fa-circle-check text-emerald-500' : 'fa-clock badge-pulse text-amber-500'}"></i>
+                            ${isVerified ? (currentLang === 'en' ? 'CS Verified Post' : 'CS 審核合規需求') : i18n[currentLang].pendingVerification}
+                        </span>
+                        <span class="text-xs font-bold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-lg">
+                            HK$${item.budget}/hr
+                        </span>
+                    </div>
+
+                    <!-- Subject & Student Level -->
+                    <h3 class="text-base font-bold text-slate-900 line-clamp-1">${item.subject}</h3>
+                    <p class="text-xs font-medium text-slate-500 mt-0.5"><i class="fa-solid fa-user-graduate mr-1"></i>${item.level}</p>
+
+                    <!-- District & Details -->
+                    <div class="mt-4 space-y-1.5 text-xs text-slate-600">
+                        <div class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-location-dot text-rose-500"></i>
+                            <span class="font-semibold text-slate-800">${item.district}</span>
+                        </div>
+                        <p class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-slate-600 italic">
+                            "${item.notes || 'No extra requirements specified.'}"
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Action Footer -->
+                <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-[10px] text-slate-400 font-medium">ID: #${item.id}</span>
+                    <button onclick="applyForMatch('${item.id}')" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>${i18n[currentLang].applyMatch}</span>
+                    </button>
+                </div>
+            `;
+            return card;
+        }
+
+        // Card Template for Tutor Profile
+        function createTutorCard(item) {
+            const card = document.createElement('div');
+            card.className = "bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between relative overflow-hidden";
+            
+            const isVerified = item.verified;
+
+            // District Badges (Limit 3 shown)
+            const districtsHtml = item.districts.slice(0, 3).map(d => `<span class="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded font-medium">${d}</span>`).join(' ');
+            const extraDistCount = item.districts.length > 3 ? `<span class="text-[10px] text-slate-400 font-medium">+${item.districts.length - 3}</span>` : '';
+
+            // Qualifications Badges
+            const qualsHtml = item.quals?.map(q => `
+                <span class="inline-flex items-center gap-1 bg-brand-50 text-brand-800 text-[11px] font-semibold px-2 py-0.5 rounded border border-brand-200">
+                    <i class="fa-solid fa-award text-brand-600 text-[10px]"></i> ${q}
+                </span>
+            `).join('') || '';
+
+            card.innerHTML = `
+                <div>
+                    <!-- Header with Role & Fee -->
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-800">
+                            <i class="fa-solid fa-user-shield text-brand-600"></i> ${item.role}
+                        </span>
+                        <span class="text-xs font-bold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-lg">
+                            HK$${item.rate}/hr
+                        </span>
+                    </div>
+
+                    <!-- Tutor Identity & Avatar -->
+                    <div class="flex items-center gap-3">
+                        <img src="${item.avatar || 'https://placehold.co/100x100/14b8a6/white?text=Tutor'}" class="w-12 h-12 rounded-full object-cover border-2 border-brand-200 shadow-sm">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">${item.name}</h3>
+                            <p class="text-xs font-medium text-slate-500 line-clamp-1">${item.uni}</p>
+                        </div>
+                    </div>
+
+                    <!-- Qualifications -->
+                    <div class="mt-3 flex flex-wrap gap-1">
+                        ${qualsHtml}
+                    </div>
+
+                    <!-- Available Districts -->
+                    <div class="mt-3">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Available Districts:</span>
+                        <div class="flex flex-wrap items-center gap-1">
+                            ${districtsHtml} ${extraDistCount}
+                        </div>
+                    </div>
+
+                    <!-- Short Bio -->
+                    <p class="mt-3 text-xs text-slate-600 line-clamp-2 italic bg-slate-50 p-2 rounded border border-slate-100">
+                        "${item.bio || 'Experienced tutor dedicated to student success.'}"
+                    </p>
+                </div>
+
+                <!-- Action Footer -->
+                <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span class="inline-flex items-center gap-1 text-[10px] ${isVerified ? 'text-emerald-600' : 'text-amber-600'} font-bold">
+                        <i class="fa-solid ${isVerified ? 'fa-circle-check' : 'fa-clock'}"></i>
+                        ${isVerified ? 'Verified Tutor' : 'Pending CS'}
+                    </span>
+                    <button onclick="applyForMatch('${item.id}')" class="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition flex items-center gap-1">
+                        <i class="fa-solid fa-comments"></i>
+                        <span>Contact via CS</span>
+                    </button>
+                </div>
+            `;
+            return card;
+        }
+
+
+        // Populate 18 HK Districts Checkboxes
+        function initDistrictCheckboxes() {
+            const reqDistrictSelect = document.getElementById('reqDistrict');
+            const tutorDistrictContainer = document.getElementById('districtCheckboxes');
+
+            reqDistrictSelect.innerHTML = '';
+            tutorDistrictContainer.innerHTML = '';
+
+            HK_DISTRICTS.forEach((d, idx) => {
+                // For Request Modal Select
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.innerText = d;
+                reqDistrictSelect.appendChild(opt);
+
+                // For Tutor Modal Checkboxes
+                const label = document.createElement('label');
+                label.className = "flex items-center gap-1.5 p-1.5 bg-white border border-slate-200 rounded-lg text-xs cursor-pointer hover:bg-slate-100 transition";
+                label.innerHTML = `
+                    <input type="checkbox" name="tutorDistricts" value="${d}" class="rounded text-brand-600 focus:ring-brand-500">
+                    <span class="text-slate-700 font-medium truncate">${d}</span>
+                `;
+                tutorDistrictContainer.appendChild(label);
+            });
+        }
+
+        // Update Request Modal Subject Options based on Selected Category
+        function updateReqSubjectOptions() {
+            const selectedCat = document.querySelector('input[name="reqCategory"]:checked').value;
+            const select = document.getElementById('reqSubjectSelect');
+            select.innerHTML = '';
+
+            let subjects = [];
+            if (selectedCat === 'academic') subjects = HKDSE_SUBJECTS;
+            else if (selectedCat === 'eca') subjects = ECA_SUBJECTS;
+            else subjects = LANG_SUBJECTS;
+
+            subjects.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.innerText = sub;
+                select.appendChild(opt);
+            });
+        }
+
+        // Toggle Tutor Modal Qualification Fields Based on Category
+        function toggleTutorQualFields() {
+            const cat = document.getElementById('tutorCategorySelect').value;
+            document.getElementById('qualAcademicGroup').classList.toggle('hidden', cat !== 'academic');
+            document.getElementById('qualEcaGroup').classList.toggle('hidden', cat !== 'eca');
+            document.getElementById('qualLangGroup').classList.toggle('hidden', cat !== 'language');
+        }
+
+        // Render Exam Subject Checkboxes for Academic Tutors
+        function renderExamSubjectCheckboxes() {
+            const curriculum = document.getElementById('examCurriculumSelect').value;
+            const container = document.getElementById('examSubjectCheckboxes');
+            container.innerHTML = '';
+
+            let list = [];
+            if (curriculum === 'HKDSE') list = HKDSE_SUBJECTS;
+            else if (curriculum === 'IB') list = IB_SUBJECTS;
+            else list = ALEVEL_SUBJECTS;
+
+            list.forEach(sub => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-1.5 bg-slate-50 rounded border border-slate-200 text-xs";
+                div.innerHTML = `
+                    <label class="flex items-center gap-1.5 cursor-pointer truncate mr-2">
+                        <input type="checkbox" name="tutorExamSubject" value="${sub}" class="rounded text-brand-600">
+                        <span class="font-medium text-slate-800 truncate">${sub}</span>
+                    </label>
+                    <select class="tutorGradeVal border border-slate-300 rounded px-1 py-0.5 text-[10px]">
+                        <option value="5**">5** / Grade 7 / A*</option>
+                        <option value="5*">5* / Grade 6 / A</option>
+                        <option value="5">Level 5 / B</option>
+                    </select>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Render ECA Certificates Checkboxes
+        function renderEcaCertCheckboxes() {
+            const container = document.getElementById('ecaCertCheckboxes');
+            container.innerHTML = '';
+
+            ECA_CERTS.forEach(cert => {
+                const label = document.createElement('label');
+                label.className = "flex items-center gap-1.5 p-1.5 bg-slate-50 rounded border border-slate-200 text-xs cursor-pointer";
+                label.innerHTML = `
+                    <input type="checkbox" name="tutorEcaCert" value="${cert}" class="rounded text-brand-600">
+                    <span class="text-slate-800 font-medium truncate">${cert}</span>
+                `;
+                container.appendChild(label);
+            });
+        }
+
+        // Render Language Test Checkboxes
+        function renderLangTestCheckboxes() {
+            const container = document.getElementById('langTestCheckboxes');
+            container.innerHTML = '';
+
+            LANG_EXAMS.forEach(exam => {
+                const label = document.createElement('label');
+                label.className = "flex items-center gap-1.5 p-1.5 bg-slate-50 rounded border border-slate-200 text-xs cursor-pointer";
+                label.innerHTML = `
+                    <input type="checkbox" name="tutorLangTest" value="${exam}" class="rounded text-brand-600">
+                    <span class="text-slate-800 font-medium truncate">${exam}</span>
+                `;
+                container.appendChild(label);
+            });
+        }
+
+
+        // Submit Student / Parent Request
+        function handleRequestSubmit(e) {
+            e.preventDefault();
+            const category = document.querySelector('input[name="reqCategory"]:checked').value;
+            const subject = document.getElementById('reqSubjectSelect').value;
+            const level = document.getElementById('reqLevel').value;
+            const budget = document.getElementById('reqBudget').value;
+            const district = document.getElementById('reqDistrict').value;
+            const notes = document.getElementById('reqNotes').value;
+            const phone = document.getElementById('reqPhone').value;
+
+            const newReq = {
+                id: 'req-' + Date.now(),
+                type: 'request',
+                category: category,
+                subject: subject,
+                level: level,
+                district: district,
+                budget: parseInt(budget),
+                notes: notes,
+                phone: phone,
+                verified: false, // Goes into CS Queue
+                createdAt: new Date().toISOString().split('T')[0]
+            };
+
+            mockListings.unshift(newReq);
+            closeRequestModal();
+            showToast("Request submitted! Pair UP CS will verify and publish shortly.");
+            
+            // Switch view to same category & requests tab
+            setActiveCategory(category);
+            setActiveSection('requests');
+            updateCSQueueCount();
+        }
+
+        // Submit Tutor Registration Profile
+        function handleTutorSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('tutorNameInput').value;
+            const role = document.getElementById('tutorRoleSelect').value;
+            const category = document.getElementById('tutorCategorySelect').value;
+            const uni = document.getElementById('tutorUni').value;
+            const rate = document.getElementById('tutorRate').value;
+            const bio = document.getElementById('tutorBioInput').value;
+            const phone = document.getElementById('tutorPhone').value;
+
+            // Selected Districts
+            const distEls = document.querySelectorAll('input[name="tutorDistricts"]:checked');
+            const selectedDistricts = Array.from(distEls).map(el => el.value);
+
+            if (selectedDistricts.length === 0) {
+                alert("Please select at least one available Hong Kong district.");
+                return;
+            }
+
+            // Gather Qualifications based on Category
+            let quals = [];
+            if (category === 'academic') {
+                const checkedSubs = document.querySelectorAll('input[name="tutorExamSubject"]:checked');
+                checkedSubs.forEach(cb => {
+                    const gradeVal = cb.closest('div').querySelector('.tutorGradeVal').value;
+                    quals.push(`${cb.value}: ${gradeVal}`);
+                });
+            } else if (category === 'eca') {
+                const checkedCerts = document.querySelectorAll('input[name="tutorEcaCert"]:checked');
+                quals = Array.from(checkedCerts).map(cb => cb.value);
+            } else {
+                const checkedLangs = document.querySelectorAll('input[name="tutorLangTest"]:checked');
+                quals = Array.from(checkedLangs).map(cb => cb.value);
+            }
+
+            const newTutor = {
+                id: 'tut-' + Date.now(),
+                type: 'tutor',
+                name: name,
+                role: role,
+                category: category,
+                uni: uni,
+                rate: parseInt(rate),
+                districts: selectedDistricts,
+                quals: quals.length > 0 ? quals : ['CS Certificate Verification Pending'],
+                bio: bio,
+                phone: phone,
+                verified: false, // Pending CS Queue
+                avatar: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random()*100000)}?w=150&auto=format&fit=crop&q=80`,
+                createdAt: new Date().toISOString().split('T')[0]
+            };
+
+            mockListings.unshift(newTutor);
+            closeTutorModal();
+            showToast("Tutor profile created! CS team is reviewing your documents.");
+
+            setActiveCategory(category);
+            setActiveSection('tutors');
+            updateCSQueueCount();
+        }
+
+        // Apply for Match Trigger
+        function applyForMatch(id) {
+            showToast("CS Matching Request Sent! Our customer service representative will contact both parties via WhatsApp.");
+        }
+
+        // Filter Controls
+        function applyFilters() {
+            renderListings();
+        }
+
+        function resetFilters() {
+            document.getElementById('filterSubject').value = '';
+            document.getElementById('filterDistrict').value = '';
+            document.getElementById('filterRole').value = '';
+            renderListings();
+        }
+
+
+        function updateCSQueueCount() {
+            const pending = mockListings.filter(i => !i.verified);
+            document.getElementById('pendingBadgeCount').innerText = pending.length;
+        }
+
+        function openCSModal() {
+            const container = document.getElementById('csQueueContainer');
+            container.innerHTML = '';
+
+            const pending = mockListings.filter(i => !i.verified);
+
+            if (pending.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500 italic">No pending items requiring verification.</p>';
+            } else {
+                pending.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = "p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs";
+                    div.innerHTML = `
+                        <div>
+                            <span class="font-bold text-slate-900">${item.type === 'request' ? 'Student Req' : 'Tutor'}: ${item.subject || item.name}</span>
+                            <span class="text-slate-500 block">Phone: <span class="font-mono text-slate-800">${item.phone || 'N/A'}</span></span>
+                        </div>
+                        <button onclick="verifyItem('${item.id}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition">
+                            Approve & Publish
+                        </button>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            document.getElementById('csModal').classList.remove('hidden');
+        }
+
+        function verifyItem(id) {
+            const target = mockListings.find(i => i.id === id);
+            if (target) {
+                target.verified = true;
+                showToast(`Approved listing #${id}! Now published on platform.`);
+                updateCSQueueCount();
+                openCSModal(); // Refresh modal
+                renderListings();
+            }
+        }
+
+        function closeCSModal() {
+            document.getElementById('csModal').classList.add('hidden');
+        }
+
+        // Modal Toggles
+        function openRequestModal() {
+            document.getElementById('requestModal').classList.remove('hidden');
+        }
+        function closeRequestModal() {
+            document.getElementById('requestModal').classList.add('hidden');
+        }
+        function openTutorModal() {
+            document.getElementById('tutorModal').classList.remove('hidden');
+        }
+        function closeTutorModal() {
+            document.getElementById('tutorModal').classList.add('hidden');
+        }
+
+        // Toast Helper
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 3500);
+        }
+    </>
+</body>
+</html>
