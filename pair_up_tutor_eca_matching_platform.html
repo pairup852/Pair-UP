@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
-    < src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pair UP - 導師與課外活動配對平台 | Tutor & ECA Matching Platform</title>
@@ -342,7 +342,7 @@
                         <input type="text" id="tutorNameInput" required placeholder="e.g. Alex Wong" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500">
                     </div>
                     
-                    <!-- Role Selection (As requested) -->
+                    <!-- Role Selection -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="tutorRole">Teacher Role / Qualification Status</span></label>
                         <select id="tutorRoleSelect" required class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500 font-semibold text-slate-800">
@@ -426,7 +426,7 @@
                     </div>
                 </div>
 
-                <!-- Bio & Self Deion -->
+                <!-- Bio & Self Description -->
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1"><span data-i18n="tutorBio">Teaching Style & Highlights</span></label>
                     <textarea id="tutorBioInput" rows="2" placeholder="e.g. 4 years tutoring experience. Provided notes for HKDSE students, 80% scored Level 5+." class="w-full text-sm border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:ring-2 focus:ring-brand-500"></textarea>
@@ -504,12 +504,12 @@
         <span id="toastMsg" class="text-xs font-medium">Action completed successfully.</span>
     </div>
 
-    <>
+    <script>
         /* ==========================================================================
            1. DATA STRUCTURES & CONFIGURATION
            ========================================================================== */
 
-        // 18 Hong Kong Districts (As required)
+        // 18 Hong Kong Districts
         const HK_DISTRICTS = [
             "Central and Western", "Eastern", "Islands", "Kowloon City", "Kwai Tsing", 
             "Kwun Tong", "North", "Sai Kung", "Sham Shui Po", "Sha Tin", 
@@ -517,7 +517,7 @@
             "Wong Tai Sin", "Yau Tsim Mong", "Yuen Long"
         ];
 
-        // DSE Subjects List (As strictly required in prompt)
+        // DSE Subjects List
         const HKDSE_SUBJECTS = [
             "Chinese Language", "English Language", "Mathematics", "Citizenship and Social Development",
             "Biology", "Chemistry", "Physics", "Business, Accounting and Financial Studies (BAFS)",
@@ -901,7 +901,6 @@
             }
         }
 
-
         function populateFilterOptions() {
             const subjectSelect = document.getElementById('filterSubject');
             const districtSelect = document.getElementById('filterDistrict');
@@ -940,22 +939,17 @@
 
             // Filter logic
             const filtered = mockListings.filter(item => {
-                // Category match
                 if (item.category !== currentCategory) return false;
-                // Section match (request vs tutor)
                 if (currentSection === 'requests' && item.type !== 'request') return false;
                 if (currentSection === 'tutors' && item.type !== 'tutor') return false;
                 
-                // Subject filter
                 if (subFilter && item.subject !== subFilter && !item.quals?.some(q => q.includes(subFilter))) return false;
                 
-                // District filter
                 if (distFilter) {
                     if (item.type === 'request' && item.district !== distFilter) return false;
                     if (item.type === 'tutor' && !item.districts?.includes(distFilter)) return false;
                 }
 
-                // Role filter
                 if (roleFilter && item.type === 'tutor' && item.role !== roleFilter) return false;
 
                 return true;
@@ -1040,11 +1034,9 @@
             
             const isVerified = item.verified;
 
-            // District Badges (Limit 3 shown)
             const districtsHtml = item.districts.slice(0, 3).map(d => `<span class="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded font-medium">${d}</span>`).join(' ');
             const extraDistCount = item.districts.length > 3 ? `<span class="text-[10px] text-slate-400 font-medium">+${item.districts.length - 3}</span>` : '';
 
-            // Qualifications Badges
             const qualsHtml = item.quals?.map(q => `
                 <span class="inline-flex items-center gap-1 bg-brand-50 text-brand-800 text-[11px] font-semibold px-2 py-0.5 rounded border border-brand-200">
                     <i class="fa-solid fa-award text-brand-600 text-[10px]"></i> ${q}
@@ -1106,7 +1098,6 @@
             return card;
         }
 
-
         // Populate 18 HK Districts Checkboxes
         function initDistrictCheckboxes() {
             const reqDistrictSelect = document.getElementById('reqDistrict');
@@ -1115,14 +1106,12 @@
             reqDistrictSelect.innerHTML = '';
             tutorDistrictContainer.innerHTML = '';
 
-            HK_DISTRICTS.forEach((d, idx) => {
-                // For Request Modal Select
+            HK_DISTRICTS.forEach((d) => {
                 const opt = document.createElement('option');
                 opt.value = d;
                 opt.innerText = d;
                 reqDistrictSelect.appendChild(opt);
 
-                // For Tutor Modal Checkboxes
                 const label = document.createElement('label');
                 label.className = "flex items-center gap-1.5 p-1.5 bg-white border border-slate-200 rounded-lg text-xs cursor-pointer hover:bg-slate-100 transition";
                 label.innerHTML = `
@@ -1221,7 +1210,6 @@
             });
         }
 
-
         // Submit Student / Parent Request
         function handleRequestSubmit(e) {
             e.preventDefault();
@@ -1243,7 +1231,7 @@
                 budget: parseInt(budget),
                 notes: notes,
                 phone: phone,
-                verified: false, // Goes into CS Queue
+                verified: false,
                 createdAt: new Date().toISOString().split('T')[0]
             };
 
@@ -1251,7 +1239,6 @@
             closeRequestModal();
             showToast("Request submitted! Pair UP CS will verify and publish shortly.");
             
-            // Switch view to same category & requests tab
             setActiveCategory(category);
             setActiveSection('requests');
             updateCSQueueCount();
@@ -1268,7 +1255,6 @@
             const bio = document.getElementById('tutorBioInput').value;
             const phone = document.getElementById('tutorPhone').value;
 
-            // Selected Districts
             const distEls = document.querySelectorAll('input[name="tutorDistricts"]:checked');
             const selectedDistricts = Array.from(distEls).map(el => el.value);
 
@@ -1277,7 +1263,6 @@
                 return;
             }
 
-            // Gather Qualifications based on Category
             let quals = [];
             if (category === 'academic') {
                 const checkedSubs = document.querySelectorAll('input[name="tutorExamSubject"]:checked');
@@ -1305,7 +1290,7 @@
                 quals: quals.length > 0 ? quals : ['CS Certificate Verification Pending'],
                 bio: bio,
                 phone: phone,
-                verified: false, // Pending CS Queue
+                verified: false,
                 avatar: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random()*100000)}?w=150&auto=format&fit=crop&q=80`,
                 createdAt: new Date().toISOString().split('T')[0]
             };
@@ -1335,7 +1320,6 @@
             document.getElementById('filterRole').value = '';
             renderListings();
         }
-
 
         function updateCSQueueCount() {
             const pending = mockListings.filter(i => !i.verified);
@@ -1376,7 +1360,7 @@
                 target.verified = true;
                 showToast(`Approved listing #${id}! Now published on platform.`);
                 updateCSQueueCount();
-                openCSModal(); // Refresh modal
+                openCSModal();
                 renderListings();
             }
         }
@@ -1408,6 +1392,6 @@
                 toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
             }, 3500);
         }
-    </>
+    </script>
 </body>
 </html>
