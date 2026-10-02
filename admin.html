@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>管理者審批後台</title>
+    <!-- 引入 Supabase JS 客戶端 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background-color: #f9f9f9; }
         .user-card { background: white; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -18,6 +20,7 @@
     <!-- 簡易登入區塊 -->
     <div id="login-box">
         <h2>管理者登入</h2>
+        <p style="color: #666; font-size: 14px;">(測試密碼請輸入: <strong>123456</strong>)</p>
         <input type="password" id="admin-password" placeholder="請輸入管理者密碼">
         <button class="login-btn" onclick="checkLogin()">登入</button>
     </div>
@@ -31,31 +34,60 @@
     </div>
 
     <script>
-        // 簡易前端密碼保護（請把 'my_secure_password' 改成你自己的密碼）
+        // === 內建可用於測試的 Supabase 公開連線資訊 ===
+        const SUPABASE_URL = 'https://xyzcompany.supabase.co'; // 預設測試端點
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; 
+        
+        // 若您有自己的 Supabase 專案，只要把上面兩行換成您自己的即可
+        // 這裡先初始化客戶端
+        let supabaseClient;
+        try {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } catch (e) {
+            console.error(e);
+        }
+
+        // 登入驗證（測試密碼設定為 123456）
         function checkLogin() {
             const pwd = document.getElementById('admin-password').value;
-            if (pwd === 'my_secure_password') {
+            if (pwd === '123456') {
                 document.getElementById('login-box').style.display = 'none';
                 document.getElementById('admin-panel').style.display = 'block';
                 loadPendingUsers();
             } else {
-                alert('密碼錯誤！');
+                alert('密碼錯誤！(測試密碼為 123456)');
             }
         }
 
-        // 載入待審核用戶
+        // 從 Supabase 資料庫真實載入狀態為 pending（待審核）的用戶
         async function loadPendingUsers() {
-            // 這裡未來可以換成你從資料庫抓取資料的 API
-            // 目前先用模擬資料展示畫面
-            const users = [
-                { id: 1, name: '王小明', email: 'test1@example.com' },
-                { id: 2, name: '李小華', email: 'test2@example.com' }
-            ];
-
             const listContainer = document.getElementById('user-list');
+            listContainer.innerHTML = '載入中...';
+
+            if (!supabaseClient || SUPABASE_URL.includes('xyzcompany')) {
+                // 如果尚未填入真實專案，自動切換為友善提示或範例顯示以防直接報錯
+                listContainer.innerHTML = `
+                    <div style="padding: 20px; background: #fff3cd; color: #856404; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>提示：</strong> 您目前使用的是預設範例網址。請將程式碼中的 <code>SUPABASE_URL</code> 與 <code>SUPABASE_ANON_KEY</code> 換成您自己的 Supabase 專案金鑰即可完整連線。
+                    </div>
+                `;
+                return;
+            }
+
+            const { data: users, error } = await supabaseClient
+                .from('applications')
+                .select('*')
+                .eq('status', 'pending');
+
+            if (error) {
+                console.error('讀取資料庫錯誤:', error);
+                listContainer.innerHTML = '載入失敗，請確認資料表名稱是否為 applications。';
+                return;
+            }
+
             listContainer.innerHTML = '';
 
-            if (users.length === 0) {
+            if (!users || users.length === 0) {
                 listContainer.innerHTML = '<div>目前沒有待審批的用戶。</div>';
                 return;
             }
@@ -65,23 +97,31 @@
                 card.className = 'user-card';
                 card.innerHTML = `
                     <div>
-                        <strong>${user.name}</strong> <br>
-                        <small style="color: #666;">${user.email}</small>
+                        <strong>${user.name || '未命名'}</strong> <br>
+                        <small style="color: #666;">${user.email || '無信箱'}</small>
                     </div>
                     <div>
-                        <button class="btn-approve" onclick="updateStatus(${user.id}, 'approved')">通過</button>
-                        <button class="btn-reject" onclick="updateStatus(${user.id}, 'rejected')">拒絕</button>
+                        <button class="btn-approve" onclick="updateStatus('${user.id}', 'approved')">通過</button>
+                        <button class="btn-reject" onclick="updateStatus('${user.id}', 'rejected')">拒絕</button>
                     </div>
                 `;
                 listContainer.appendChild(card);
             });
         }
 
-        // 審批動作
+        // 審批動作：更新 Supabase 中的狀態
         async function updateStatus(userId, status) {
-            // 這裡未來可以串接你的後端 API 來更新資料庫狀態
-            alert(`用戶 ID ${userId} 已被設為：${status === 'approved' ? '通過' : '拒絕'}`);
-            loadPendingUsers(); // 重新整理列表
+            const { error } = await supabaseClient
+                .from('applications')
+                .update({ status: status })
+                .eq('id', userId);
+
+            if (error) {
+                alert('更新失敗: ' + error.message);
+            } else {
+                alert(`已成功將該用戶設為：${status === 'approved' ? '通過' : '拒絕'}`);
+                loadPendingUsers(); // 重新整理列表
+            }
         }
     </script>
 </body>
